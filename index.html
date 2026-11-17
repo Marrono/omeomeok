@@ -328,6 +328,7 @@ textarea.field { resize: vertical; min-height: 64px; }
 .prow.diary.locked{opacity:.55;cursor:default}
 .vol{width:100%;accent-color:var(--accent);margin:4px 0 6px}
 .splash.wait{animation:none}
+.splash .quietbtn{margin-top:8px;min-width:220px;animation:startin .4s .1s ease both}
 .splash .startbtn{margin-top:14px;min-width:220px;font-size:20px;padding:14px 26px;animation:startin .4s ease both}
 @keyframes startin{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
 .gslide{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
@@ -2011,15 +2012,16 @@ textarea.field { resize: vertical; min-height: 64px; }
     ['bgm/bubble-beach.mp3', 'Bubble Beach'], ['bgm/jelly-bounce.mp3', 'Jelly Bounce'], ['bgm/little-garden.mp3', 'Little Garden'], ['bgm/little-stardust.mp3', 'Little Stardust']
   ];
   const BGM_DEF_VOL = 15, BGM_DUCK = .35;
-  let bgmOn = store.get('bgm', true) !== false, bgmVol = Math.min(100, Math.max(0, Number(store.get('bgmvol', BGM_DEF_VOL)))), bgmHist = store.get('bgmh', []);
+  let bgmOn = store.get('bgm', true) !== false, bgmVol = Math.min(100, Math.max(1, Math.round(Number(store.get('bgmvol', BGM_DEF_VOL)) || BGM_DEF_VOL))), bgmHist = store.get('bgmh', []);
   if (!Array.isArray(bgmHist)) bgmHist = [];
-  let bgmEl = null, bgmCur = -1, bgmFails = 0, bgmWant = false;
+  let bgmEl = null, bgmCur = -1, bgmFails = 0, bgmWant = false, bgmBlocked = false;
+  const bgmPlay = () => { if (!bgmEl) return; const pr = bgmEl.play(); if (pr && pr.then) pr.then(() => { bgmBlocked = false; bgmLabel(); }, () => { bgmBlocked = true; bgmLabel(); }); };
   function bgmPick() {
     const ban = bgmHist.slice(-2), pool = BGM.map((_, i) => i).filter(i => !ban.includes(i));
     return pool[Math.floor(Math.random() * pool.length)];
   }
   function bgmApplyVol() { if (bgmEl) bgmEl.volume = Math.min(1, bgmVol / 100 * (ui.story ? BGM_DUCK : 1)); }
-  const bgmText = () => !bgmOn ? '배경 음악이 꺼져 있어' : (bgmFails >= BGM.length ? '이 화면에서는 음악을 재생할 수 없어' : (bgmCur >= 0 && bgmEl && !bgmEl.paused ? '♪ ' + BGM[bgmCur][1] : (bgmCur >= 0 ? '♪ ' + BGM[bgmCur][1] + ' (화면을 누르면 재생돼)' : '화면을 한 번 누르면 음악이 시작돼')));
+  const bgmText = () => !bgmOn ? '배경 음악이 꺼져 있어' : (bgmFails >= BGM.length ? '이 화면에서는 음악을 재생할 수 없어' : (bgmCur >= 0 && bgmEl && !bgmEl.paused ? '♪ ' + BGM[bgmCur][1] : (bgmCur >= 0 ? '♪ ' + BGM[bgmCur][1] + ' (멈춰 있어 · \'다시 재생\'을 눌러)' : '시작하기를 누르면 음악이 시작돼')));
   function bgmLabel() { const el = document.getElementById('bgmnow'); if (el) el.textContent = bgmText(); }
   function bgmNext() {
     if (!bgmOn) return;
@@ -2027,21 +2029,21 @@ textarea.field { resize: vertical; min-height: 64px; }
     if (!bgmEl) {
       bgmEl = new Audio(); bgmEl.preload = 'none';
       bgmEl.addEventListener('ended', () => { bgmFails = 0; bgmNext(); });
+      ['playing', 'pause'].forEach(ev => bgmEl.addEventListener(ev, () => bgmLabel()));
       bgmEl.addEventListener('error', () => { bgmFails++; if (bgmFails < BGM.length) bgmNext(); else bgmLabel(); });
     }
     bgmEl.src = BGM[i][0]; bgmApplyVol();
-    const pr = bgmEl.play(); if (pr && pr.catch) pr.catch(() => {});
+    bgmPlay();
     bgmLabel();
   }
   function bgmStart() {
     bgmWant = true;
     if (!bgmOn) return;
-    if (bgmEl && bgmEl.src && bgmFails < BGM.length) { if (bgmEl.paused) { const pr = bgmEl.play(); if (pr && pr.catch) pr.catch(() => {}); } bgmLabel(); return; }
+    if (bgmEl && bgmEl.src && bgmFails < BGM.length) { if (bgmEl.paused) bgmPlay(); bgmLabel(); return; }
     bgmNext();
   }
   function bgmStop() { if (bgmEl) { bgmEl.pause(); } }
-  ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (bgmOn && !document.hidden && (!bgmEl || bgmEl.paused)) bgmStart(); }, { passive: true }));
-  setTimeout(() => { if (bgmOn) bgmStart(); }, 0);
+  ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (bgmOn && bgmBlocked && !document.hidden && bgmEl && bgmEl.paused) bgmStart(); }, { passive: true }));
   document.addEventListener('visibilitychange', () => { if (document.hidden) bgmStop(); else if (bgmOn && bgmWant) bgmStart(); });
   document.addEventListener('input', e => {
     const t = e.target; if (!t || t.id !== 'bgmvol') return;
@@ -2053,9 +2055,9 @@ textarea.field { resize: vertical; min-height: 64px; }
     return '<section class="card"><h2>소리 설정</h2>' +
       '<div class="stat"><span>배경 음악</span><button type="button" class="btn small" data-act="bgmtoggle" aria-pressed="' + bgmOn + '">' + (bgmOn ? '켜짐' : '꺼짐') + '</button></div>' +
       '<label class="label" for="bgmvol">배경 음악 볼륨 <b id="bgmvv">' + bgmVol + '%</b></label>' +
-      '<input id="bgmvol" class="vol" type="range" min="0" max="100" step="5" value="' + bgmVol + '">' +
+      '<input id="bgmvol" class="vol" type="range" min="1" max="100" step="1" value="' + bgmVol + '">' +
       '<p class="hint" id="bgmnow" aria-live="polite">' + bgmText() + '</p>' +
-      '<div><button type="button" class="btn ghost small" data-act="bgmskip"' + (bgmOn ? '' : ' disabled') + '>다음 곡</button></div>' +
+      '<div class="row"><button type="button" class="btn ghost small" data-act="bgmresume"' + (bgmOn ? '' : ' disabled') + '>다시 재생</button><button type="button" class="btn ghost small" data-act="bgmskip"' + (bgmOn ? '' : ' disabled') + '>다음 곡</button></div><p class="hint">다른 앱에서 음악을 듣고 있다면 여기서 배경 음악을 꺼 두면 방해하지 않아.</p>' +
       '<div class="stat"><span>효과음 (버튼·출석·레벨업)</span><button type="button" class="btn small" data-act="sfxtoggle" aria-pressed="' + sfxOn + '">' + (sfxOn ? '켜짐' : '꺼짐') + '</button></div></section>';
   }
   setTimeout(bgmLabel, 0);
@@ -3061,6 +3063,7 @@ textarea.field { resize: vertical; min-height: 64px; }
         return;
       }
       case 'bgmtoggle': bgmOn = !bgmOn; store.set('bgm', bgmOn); if (bgmOn) { bgmFails = 0; bgmStart(); } else bgmStop(); render(); setTimeout(bgmLabel, 0); return;
+      case 'bgmresume': if (bgmOn) { bgmFails = 0; bgmWant = true; bgmStart(); } return;
       case 'bgmskip': bgmFails = 0; bgmWant = true; bgmNext(); return;
       case 'gnext': showGuide((ui.guide || 0) + 1); return;
       case 'gprev': showGuide((ui.guide || 0) - 1); return;
@@ -3167,7 +3170,13 @@ textarea.field { resize: vertical; min-height: 64px; }
       const sub = sp.querySelector('.ssub'); if (sub) sub.textContent = '오늘 뭐 먹지? 머먹쥐랑 같이 골라 봐!';
       const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn primary startbtn'; btn.textContent = '오머먹 시작하기';
       btn.addEventListener('click', () => { btn.disabled = true; bgmStart(); sfx('pick'); enter(); });
-      sp.appendChild(btn); try { btn.focus({ preventScroll: true }); } catch (e) {}
+      sp.appendChild(btn);
+      if (bgmOn) {
+        const q = document.createElement('button'); q.type = 'button'; q.className = 'btn ghost quietbtn'; q.textContent = '소리 없이 시작하기';
+        q.addEventListener('click', () => { q.disabled = true; btn.disabled = true; bgmOn = false; store.set('bgm', false); enter(); });
+        sp.appendChild(q);
+      }
+      try { btn.focus({ preventScroll: true }); } catch (e) {}
     }, Math.max(0, 1000 - (Date.now() - t0))));
   })();
 })();
