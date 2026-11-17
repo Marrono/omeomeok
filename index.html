@@ -1773,7 +1773,7 @@ textarea.field { resize: vertical; min-height: 64px; }
     ['bgm/sugar-bakery.mp3', 'Sugar Bakery'], ['bgm/sunny-picnic.mp3', 'Sunny Picnic'], ['bgm/sweet-little-home.mp3', 'Sweet Little Home'],
     ['bgm/bubble-beach.mp3', 'Bubble Beach'], ['bgm/jelly-bounce.mp3', 'Jelly Bounce'], ['bgm/little-garden.mp3', 'Little Garden'], ['bgm/little-stardust.mp3', 'Little Stardust']
   ];
-  const BGM_DEF_VOL = 30, BGM_DUCK = .35;
+  const BGM_DEF_VOL = 15, BGM_DUCK = .35;
   let bgmOn = store.get('bgm', true) !== false, bgmVol = Math.min(100, Math.max(0, Number(store.get('bgmvol', BGM_DEF_VOL)))), bgmHist = store.get('bgmh', []);
   if (!Array.isArray(bgmHist)) bgmHist = [];
   let bgmEl = null, bgmCur = -1, bgmFails = 0, bgmWant = false;
