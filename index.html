@@ -340,6 +340,11 @@ textarea.field { resize: vertical; min-height: 64px; }
 .gitem:first-child{border-top:0}
 .gitem .desc{margin:2px 0 0}
 .postimg{display:block;width:100%;max-height:340px;object-fit:cover;border-radius:16px;border:2px solid var(--edge);margin:6px 0}
+.fav{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px}
+.favt{font-size:11px;font-weight:700;color:var(--accent);margin-right:2px}
+.favi{font-size:12px;background:var(--tint);border-radius:99px;padding:2px 8px;display:inline-flex;gap:4px;align-items:center}
+.favi b{font-size:11px;color:var(--accent)}
+.favn{width:20px;text-align:center;flex:none}
 [hidden]{display:none!important}body{margin:0}
 </style>
 </head>
@@ -2410,7 +2415,7 @@ textarea.field { resize: vertical; min-height: 64px; }
         cuisines: arr(p.cuisines, 20).filter(x => typeof x === 'string'), kinds: arr(p.kinds, 20).filter(x => typeof x === 'string'),
         dislikes: arr(p.dislikes, 20).filter(x => typeof x === 'string'), allergens: arr(p.allergens, 30).filter(x => typeof x === 'string'),
         drink: ['no', 'some', 'love'].includes(p.drink) ? p.drink : 'some', spicy: num(p.spicy, 0, 3) ? p.spicy : 2, greasy: num(p.greasy, 0, 3) ? p.greasy : 1,
-        area: str(p.area, 30), nick: str(p.nick, 12) || profile.nick, done: p.done === true
+        area: str(p.area, 30), fav: cleanFav(p.fav), nick: str(p.nick, 12) || profile.nick, done: p.done === true
       });
       if (!(consent && consent.allergy)) out.profile.allergens = [];
       out.history = arr(d.history, KEEP).filter(h => h && typeof h.n === 'string' && 'blsd'.includes(h.meal) && h.meal.length === 1 && typeof h.date === 'string' && dk(h.date) && num(h.ts, 0, 4e12))
@@ -2443,7 +2448,7 @@ textarea.field { resize: vertical; min-height: 64px; }
      CONTACT에 운영자 문의처(이메일 등)를 넣으면 방침에 그대로 표시돼. 정식 출시 전에 전문가 검토를 받아. */
   const CONTACT = '';
   const LEGAL_DATE = '2026년 11월 17일';
-  const CONSENT_V = 2;
+  const CONSENT_V = 3;
   let consent = store.get('consent', null);
   const TERMS = [
     ['1. 서비스', '오머먹은 취향에 맞는 식사·디저트 메뉴를 추천하고, 룰렛·사다리로 메뉴를 정하며, 캘린더 기록·출석체크·게시판 등을 제공하는 서비스야.'],
@@ -2454,7 +2459,7 @@ textarea.field { resize: vertical; min-height: 64px; }
     ['6. 서비스 변경', '서비스 내용과 이 약관은 바뀔 수 있고, 바뀌면 앱 안에서 알려.']
   ];
   const PRIVACY = [
-    ['1. 수집하는 정보와 이용 목적', '• 취향 정보(좋아하는 음식, 술·맵기·느끼함 선호, 싫어하는 재료): 메뉴 추천\n• 알러지 정보(선택 동의): 해당 성분이 든 메뉴를 추천에서 제외. 건강과 관련된 정보라서 따로 동의를 받아.\n• 닉네임, 메뉴 선택·인증 기록, 출석·포인트·레벨 기록: 서비스 기능 제공\n• 인증 사진(카메라로 직접 촬영): 메뉴 인증. 이 기기 안에만 저장되고 서버로 보내지 않아.\n• 게시글(메뉴 이름, 한마디, 닉네임, 레벨, 첨부한 음식 사진), 좋아·신고 기록, 이용자 식별 번호: 공유 게시판 운영. 게시판에 올린 사진은 다른 이용자에게 보여. 사진은 작게 줄여 올라가며 촬영 위치 같은 정보는 지워져.'],
+    ['1. 수집하는 정보와 이용 목적', '• 취향 정보(좋아하는 음식, 술·맵기·느끼함 선호, 싫어하는 재료): 메뉴 추천\n• 알러지 정보(선택 동의): 해당 성분이 든 메뉴를 추천에서 제외. 건강과 관련된 정보라서 따로 동의를 받아.\n• 닉네임, 메뉴 선택·인증 기록, 출석·포인트·레벨 기록: 서비스 기능 제공\n• 인증 사진(카메라로 직접 촬영): 메뉴 인증. 이 기기 안에만 저장되고 서버로 보내지 않아.\n• 게시글(메뉴 이름, 한마디, 닉네임, 레벨, 최애 음식 Top3(입력한 경우), 첨부한 음식 사진), 좋아·신고 기록, 이용자 식별 번호: 공유 게시판 운영. 게시판에 올린 사진은 다른 이용자에게 보여. 사진은 작게 줄여 올라가며 촬영 위치 같은 정보는 지워져.'],
     ['2. 저장 위치와 보유 기간', '취향·기록·포인트·인증 사진은 이 기기의 브라우저 저장소에만 저장돼. 앱 데이터를 지우거나 마이페이지의 "내 데이터 모두 삭제"를 누르면 삭제돼. 공유 게시판에 올린 글·좋아·신고 기록은 서비스 저장소에 저장되며, 글은 직접 삭제하거나 삭제를 요청할 때까지 보관돼.'],
     ['3. 제3자 제공과 처리 위탁', '수집한 정보를 광고나 마케팅 목적으로 제3자에게 제공하지 않아. 공유 게시판의 데이터 저장은 서비스 제공을 위해 클라우드 저장소를 이용해.'],
     ['4. 외부 서비스', '• 글꼴은 Google Fonts에서 불러오며, 이때 접속 정보(IP 주소 등)가 Google에 전달될 수 있어.\n• 네이버지도·카카오맵 링크를 열면 해당 서비스의 정책이 적용돼.\n• 현재 광고는 예시 화면이야. 실제 광고를 도입하면 광고 식별자 등 처리 내용을 이 방침에 미리 알려.'],
@@ -2735,7 +2740,7 @@ textarea.field { resize: vertical; min-height: 64px; }
       if (!own && reportCount(p.id) >= REPORT_HIDE) return '<section class="card post"><p class="hint">신고가 여러 번 접수되어 가려진 글이야.</p></section>';
       const liked = sharedMode() && ui.uid && ui.likes.some(l => l.id === p.id + '__' + ui.uid);
       const dis = !sharedMode() || own || !ui.uid || !canPost();
-      return '<section class="card post"><div class="ph">' + tile({ n: p.n }, 'sm') + '<div style="min-width:0"><div class="pn">' + esc(p.n) + '</div><div class="pm">' + nameTag(sharedMode() && p.u === ui.uid || !sharedMode() ? meLv().lv : (Number(p.lv) || 1), p.k || '익명') + ' · ' + ago(p.ts) + '</div></div></div>' +
+      return '<section class="card post"><div class="ph">' + tile({ n: p.n }, 'sm') + '<div style="min-width:0"><div class="pn">' + esc(p.n) + '</div><div class="pm">' + nameTag(sharedMode() && p.u === ui.uid || !sharedMode() ? meLv().lv : (Number(p.lv) || 1), p.k || '익명') + ' · ' + ago(p.ts) + '</div>' + favLine(own ? profile.fav : p.f) + '</div></div>' +
         (p.t ? '<p class="pt">' + esc(p.t) + '</p>' : '') + (postImgSrc(p) ? '<img class="postimg" src="' + postImgSrc(p) + '" alt="게시글 사진: ' + esc(p.n) + '" loading="lazy">' : '') +
         '<div class="pa"><button type="button" class="chip" data-act="like" data-val="' + esc(p.id) + '" aria-pressed="' + !!liked + '"' + (dis ? ' disabled' : '') + '>' + gl('heart') + '맛있겠쥐 ' + n + '</button>' +
         (own ? '<button type="button" class="btn ghost small" data-act="pdel" data-val="' + esc(p.id) + '">삭제</button>' : '<button type="button" class="btn ghost small" data-act="prep" data-val="' + esc(p.id) + '">' + (reported(p.id) ? '신고함' : '신고') + '</button>') +
@@ -2801,6 +2806,7 @@ textarea.field { resize: vertical; min-height: 64px; }
     const mine = boardPosts().filter(p => (sharedMode() ? p.u === ui.uid : true) && p.ts >= dayStart.getTime()).length;
     if (mine >= 10) { toast('오늘은 글을 10개까지 올릴 수 있어'); return; }
     const post = { n, t, k: profile.nick, lv: meLv().lv, ts: Date.now() };
+    const ff = cleanFav(profile.fav); if (ff.some(Boolean)) post.f = ff;
     if (ui.pimg) {
       const ok = document.getElementById('pimgok');
       if (!ok || !ok.checked) { toast('사진 확인 항목에 체크해 줘!'); return; }
@@ -2881,6 +2887,10 @@ textarea.field { resize: vertical; min-height: 64px; }
       '<section class="card"><h2 class="h-ico">' + tileK('egg', 'xs') + '<span>내 정보</span></h2>' +
       '<label class="label" for="nick">닉네임</label><div class="field-row"><input id="nick" class="field" type="text" maxlength="12" value="' + esc(profile.nick) + '" autocomplete="off"><button type="button" class="btn small" data-act="nick">저장</button></div>' +
       '<p class="hint">게시판 글에 이 닉네임이 보여.</p>' +
+      '<div class="label">나의 최애 음식 Top3</div>' +
+      [0, 1, 2].map(i => '<div class="field-row"><b class="favn">' + (i + 1) + '</b><input id="fav' + i + '" class="field" type="text" maxlength="10" placeholder="' + ['예: 마라탕', '예: 곱창', '예: 치즈케이크'][i] + '" value="' + esc(cleanFav(profile.fav)[i] || '') + '" autocomplete="off"></div>').join('') +
+      '<div><button type="button" class="btn small" data-act="savefav">최애 저장</button></div>' +
+      '<p class="hint">게시판에 올린 글에 닉네임과 함께 보여. 비워 두면 안 보여.</p>' +
       '<div class="stat"><span>이번 달 출석한 날</span><b>' + Object.keys(att).filter(k => k.slice(0, 7) === todayKey().slice(0, 7) && att[k].length).length + '일</b></div><div class="stat"><span>정한 메뉴</span><b>' + history.length + '개</b></div><div class="stat"><span>올린 글</span><b>' + nPost + '개</b></div></section>' +
       sfxCard() +
       '<section class="card"><h2>설정 초기화</h2><p class="hint">취향과 고른 메뉴 기록이 지워지고 처음 설정 화면으로 돌아가. 인증한 기록과 포인트는 남아.</p>' +
@@ -2901,6 +2911,16 @@ textarea.field { resize: vertical; min-height: 64px; }
     return diaryCard() + '<section class="card">' + list.map(e => '<div class="prow">' + tile({ n: e.n }, 'xs') + '<div class="pt"><span class="l">' + shortDate(parseKey(e.date)) + ' · ' + planLabel(e) + '</span><span class="n">' + esc(e.n) + '</span></div>' +
       (e.cert ? '<div class="ac">' + photoTag(e) + '<span class="badge">인증 +50P</span></div>' : '') + '</div>').join('') + '</section>' +
       '<section class="card"><p class="hint">기록을 비워도 인증한 기록과 포인트는 남아.</p><div><button type="button" class="btn ghost small" data-act="clearhist">인증 안 한 기록 비우기</button></div></section>';
+  }
+  const cleanFav = a => (Array.isArray(a) ? a : []).slice(0, 3).map(x => typeof x === 'string' ? x.replace(/\s+/g, ' ').trim().slice(0, 10) : '');
+  const favList = a => cleanFav(a).map((x, i) => x ? [i + 1, x] : null).filter(Boolean);
+  function favLine(a) {
+    const l = favList(a); if (!l.length) return '';
+    return '<div class="fav" aria-label="최애 음식 Top3"><span class="favt">최애</span>' + l.map(x => '<span class="favi"><b>' + x[0] + '</b>' + esc(x[1]) + '</span>').join('') + '</div>';
+  }
+  function saveFav() {
+    const v = [0, 1, 2].map(i => { const el = document.getElementById('fav' + i); return el ? el.value : ''; });
+    profile.fav = cleanFav(v); saveProfile(); toast(favList(profile.fav).length ? '최애 음식을 저장했어' : '최애 음식을 비웠어'); render();
   }
   function saveNick() {
     const el = document.getElementById('nick'); if (!el) return;
@@ -3068,6 +3088,7 @@ textarea.field { resize: vertical; min-height: 64px; }
       case 'bsort': ui.bsort = val; break;
       case 'mytab': ui.myTab = val; if (ui.tab !== 'my') { location.hash = 'my'; return; } break;
       case 'nick': saveNick(); return;
+      case 'savefav': saveFav(); return;
       case 'plan': assignPlan(val, t.dataset.d, t.dataset.m, t.dataset.h === '1'); break;
       case 'share': openShare(val, t.dataset.l, t.dataset.d); return;
       case 'sharimg': shareImage(); return;
